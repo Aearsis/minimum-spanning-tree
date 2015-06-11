@@ -58,13 +58,15 @@ radixsort(TYPE* array, size_t size)
 		array[a3[x]++] = *it;
 	}
 
-	for (TYPE* it = array; it != end; ++it) {
-		int x = (GET(*it) >> 16) & 0xff;
-		swap[a2[x]++] = *it;
-	}
+	if (a2[1] != size || a1[1] != size) { // Sorting only 16-bit values faster
+		for (TYPE* it = array; it != end; ++it) {
+			int x = (GET(*it) >> 16) & 0xff;
+			swap[a2[x]++] = *it;
+		}
 
-	for (TYPE* it = swap; it != send; ++it) {
-		int x = (GET(*it) >> 24) & 0xff;
-		array[a1[x]++] = *it;
+		for (TYPE* it = swap; it != send; ++it) {
+			int x = (GET(*it) >> 24) & 0xff;
+			array[a1[x]++] = *it;
+		}
 	}
 }
