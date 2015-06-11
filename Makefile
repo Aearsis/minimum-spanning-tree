@@ -1,6 +1,6 @@
 # Compilation settings:
 CFLAGS=-Wall -Wextra -std=gnu99 $(MYCFLAGS)
-LDFLAGS=-lm $(MYLDFLAGS)
+LDFLAGS=$(MYLDFLAGS)
 
 OPTCFLAGS=$(CFLAGS) -O3 -march=native -DNDEBUG
 DBGCFLAGS=$(CFLAGS) -ggdb3

@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <strings.h>
 #include <sys/time.h>
 
 #include "aim.h"
@@ -29,24 +30,23 @@ graph_load(char *filename)
 	struct edge * edges = g->edge_pool = calloc(g->m, sizeof(struct edge));
 
 	for (uint i = 0; i < g->n; i++) {
+		g->vertices[i].parent = i;
 		uint neighbours;
 		if (1 != fscanf(f, "%u", &neighbours)) {
 			fprintf(stderr, "format error: invalid line %i.\n", i);
 			goto fail;
 		}
 		g->vertices[i].edge_count = neighbours;
-		g->vertices[i].edges = edges;
+		g->vertices[i].edges_offset = edges - g->edge_pool;
 		for (uint j = 0; j < neighbours; j++) {
-			uint vref;
-			if (2 != fscanf(f, "%u %u", &vref, &edges[j].cost)) {
+			if (2 != fscanf(f, "%u %u", &edges[j].neighbour, &edges[j].cost)) {
 				fprintf(stderr, "Format error: Invalid edge %i at vertex %i.\n", j, i);
 				goto fail;
 			}
-			if (vref >= g->n) {
-				fprintf(stderr, "Format error: Invalid reference to nonexistent vertex %i.\n", vref);
+			if (edges[j].neighbour >= g->n) {
+				fprintf(stderr, "Format error: Invalid reference to nonexistent vertex %i.\n", edges[j].neighbour);
 				goto fail;
 			}
-			edges[j].neighbour = &g->vertices[vref];
 		}
 		edges += neighbours;
 		if (edges - g->edge_pool > g->m + g->n) {
@@ -77,14 +77,14 @@ graph_save(char *filename, struct graph *g)
 	graph_recalc(g);
 	fprintf(f, "%u %u\n", g->n, g->m);
 	for (uint i = 0; i < g->n; i++) {
-		struct edge * edges = g->vertices[i].edges;
+		struct edge * edges = g->edge_pool + g->vertices[i].edges_offset;
 		uint count = g->vertices[i].edge_count;
 		fprintf(f, "%u ", count);
 		if (count) {
 			for (uint j = 0; j < count - 1; j++) {
-				fprintf(f, "%ld %u ", (edges[j].neighbour - g->vertices), edges[j].cost);
+				fprintf(f, "%u %u ", edges[j].neighbour, edges[j].cost);
 			}
-			fprintf(f, "%ld %u", (edges[count - 1].neighbour - g->vertices), edges[count - 1].cost);
+			fprintf(f, "%u %u", edges[count - 1].neighbour, edges[count - 1].cost);
 		}
 		fprintf(f, "\n");
 	}
@@ -101,7 +101,7 @@ graph_clone_vertices(struct graph *g)
 	h->edge_pool = calloc(g->m, sizeof(struct edge));
 
 	for (uint i = 0; i < g->n; i++) {
-		h->vertices[i].edges = g->vertices[i].edges - g->edge_pool + h->edge_pool;
+		h->vertices[i].edges_offset = g->vertices[i].edges_offset;
 	}
 
 	return h;
@@ -115,11 +115,10 @@ graph_clone(struct graph *g)
 
 	for (uint i = 0; i < g->n; i++) {
 		h->vertices[i].edge_count = g->vertices[i].edge_count;
-		struct edge * g_edges = g->vertices[i].edges;
-		struct edge * h_edges = h->vertices[i].edges;
+		struct edge * g_edges = g->vertices[i].edges_offset + g->edge_pool;
+		struct edge * h_edges = h->vertices[i].edges_offset + h->edge_pool;
 		for (uint j = 0; j < h->vertices[i].edge_count; j++) {
-			h_edges[j].cost = g_edges[j].cost;
-			h_edges[j].neighbour = g_edges[j].neighbour - g->vertices + h->vertices;
+			h_edges[j] = g_edges[j];
 		}
 	}
 

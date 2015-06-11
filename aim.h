@@ -6,16 +6,13 @@
 typedef unsigned int uint;
 
 struct edge {
-	struct vertex * neighbour;
-	uint cost;
-};
+	uint neighbour, cost;
+} __attribute__((aligned(8)));
+
 
 struct vertex {
-	struct edge * edges;
-	struct vertex * parent;
-	unsigned int rank;
-	uint edge_count;
-};
+	uint edges_offset, parent, rank, edge_count;
+} __attribute__((aligned(16)));
 
 struct graph {
 	uint n, m;
